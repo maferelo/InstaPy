@@ -8,23 +8,37 @@ SELECT_FROM_PROFILE_WHERE_NAME = "SELECT * FROM profiles WHERE name = :name"
 
 INSERT_INTO_PROFILE = "INSERT INTO profiles (name) VALUES (?)"
 
-SQL_CREATE_PROFILE_TABLE = """CREATE TABLE IF NOT EXISTS `profiles` (
-                  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-                  `name` TEXT NOT NULL);"""
+SQL_CREATE_PROFILE_TABLE = """
+    CREATE TABLE IF NOT EXISTS `profiles` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+        `name` TEXT NOT NULL);"""
 
-SQL_CREATE_RECORD_ACTIVITY_TABLE = """CREATE TABLE IF NOT EXISTS `recordActivity` (
-                  `profile_id` INTEGER REFERENCES `profiles` (id),
-                  `likes` SMALLINT UNSIGNED NOT NULL,
-                  `comments` SMALLINT UNSIGNED NOT NULL,
-                  `follows` SMALLINT UNSIGNED NOT NULL,
-                  `unfollows` SMALLINT UNSIGNED NOT NULL,
-                  `server_calls` INT UNSIGNED NOT NULL,
-                  `created` DATETIME NOT NULL);"""
+SQL_CREATE_RECORD_ACTIVITY_TABLE = """
+    CREATE TABLE IF NOT EXISTS `recordActivity` (
+        `profile_id` INTEGER REFERENCES `profiles` (id),
+        `likes` SMALLINT UNSIGNED NOT NULL,
+        `comments` SMALLINT UNSIGNED NOT NULL,
+        `follows` SMALLINT UNSIGNED NOT NULL,
+        `unfollows` SMALLINT UNSIGNED NOT NULL,
+        `server_calls` INT UNSIGNED NOT NULL,
+        `created` DATETIME NOT NULL);"""
 
-SQL_CREATE_FOLLOW_RESTRICTION_TABLE = """CREATE TABLE IF NOT EXISTS `followRestriction` (
-                  `profile_id` INTEGER REFERENCES `profiles` (id),
-                  `username` TEXT NOT NULL,
-                  `times` TINYINT UNSIGNED NOT NULL);"""
+SQL_CREATE_FOLLOW_RESTRICTION_TABLE = """
+    CREATE TABLE IF NOT EXISTS `followRestriction` (
+        `profile_id` INTEGER REFERENCES `profiles` (id),
+        `username` TEXT NOT NULL,
+        `times` TINYINT UNSIGNED NOT NULL);"""
+
+SQL_CREATE_ACCOUNTS_PROGRESS_TABLE = """
+    CREATE TABLE IF NOT EXISTS `accountsProgress` (
+        `profile_id` INTEGER NOT NULL,
+        `followers` INTEGER NOT NULL,
+        `following` INTEGER NOT NULL,
+        `total_posts` INTEGER NOT NULL,
+        `created` DATETIME NOT NULL,
+        `modified` DATETIME NOT NULL,
+        CONSTRAINT `fk_accountsProgress_profiles1`
+        FOREIGN KEY(`profile_id`) REFERENCES `profiles`(`id`));"""
 
 
 def get_database(make=False):
@@ -50,16 +64,17 @@ def create_database(address, logger, name):
             connection.row_factory = sqlite3.Row
             cursor = connection.cursor()
 
-            create_tables(cursor, ["profiles", "recordActivity", "followRestriction"])
+            create_tables(cursor, ["profiles",
+                                   "recordActivity",
+                                   "followRestriction",
+                                   "accountsProgress"])
 
             connection.commit()
 
     except Exception as exc:
         logger.warning(
-            "Wah! Error occurred while getting a DB for '{}':\n\t{}".format(
-                name, str(exc).encode("utf-8")
-            )
-        )
+            "Wah! Error occurred while getting a DB for '{}':\n\t{}"
+            .format(name, str(exc).encode("utf-8")))
 
     finally:
         if connection:
@@ -76,6 +91,9 @@ def create_tables(cursor, tables):
 
     if "followRestriction" in tables:
         cursor.execute(SQL_CREATE_FOLLOW_RESTRICTION_TABLE)
+
+    if "accountsProgress" in tables:
+        cursor.execute(SQL_CREATE_ACCOUNTS_PROGRESS_TABLE)
 
 
 def verify_database_directories(address):
@@ -113,10 +131,8 @@ def get_profile(name, address, logger):
 
     except Exception as exc:
         logger.warning(
-            "Heeh! Error occurred while getting a DB profile for '{}':\n\t{}".format(
-                name, str(exc).encode("utf-8")
-            )
-        )
+            "Heeh! Error occurred while getting a DB profile for '{}':\n\t{}"
+            .format(name, str(exc).encode("utf-8")))
 
     finally:
         if conn:
@@ -143,3 +159,6 @@ def select_profile_by_username(cursor, name):
     profile = cursor.fetchone()
 
     return profile
+
+
+

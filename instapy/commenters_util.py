@@ -269,23 +269,36 @@ def users_liked (browser, photo_url, amount=100):
 def likers_from_photo(browser, amount=20):
 
     user_liked_list = []
+    liked_counter_button = "//div/article/div[2]/section[2]/div/div/a"
+
     try:
-        liked_this = browser.find_elements_by_xpath("//div/article/div[2]/section[2]/div/a")
+        liked_this = browser.find_elements_by_xpath(liked_counter_button)
         likers = []
+
         for liker in liked_this:
-            if "like this" not in liker.text:
+            if " like this" not in liker.text:
                 likers.append(liker.text)
-        if check_exists_by_xpath(browser, "//div/article/div[2]/section[2]/div/a"):
-            if "likes" not in liked_this[0].text:
-                print ("Few likes, not guaranteed you don't follow these likers already.\nGot photo likers: ", likers," \n")
+
+        if check_exists_by_xpath(browser, liked_counter_button):
+            if " others" in liked_this[-1].text:
+                element_to_click = liked_this[-1]
+
+            elif " likes" in liked_this[0].text:
+                element_to_click = liked_this[0]
+
+            else:
+                print ("Few likes, not guaranteed you don't follow these"
+                       " likers already.\nGot photo likers: {}\n"
+                       .format(likers))
                 return likers
+
         else:
-            print ("Video has no likes?")
+            print ("Couldn't find liked counter button. May be a video.")
             print ("Moving on..")
             return []
 
         sleep(1)
-        click_element(browser, liked_this[0])
+        click_element(browser, element_to_click)
         print ("opening likes")
         # update server calls
         #update_activity()
@@ -376,3 +389,4 @@ def get_photo_urls_from_profile (browser, username, links_to_return_amount=1, ra
     #except:
     print ("Error: Couldnt get pictures links.")
     return []
+
